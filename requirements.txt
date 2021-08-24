@@ -5,4 +5,3 @@ vtk
 PyQt5
 pyopengl
 pyqtgraph
-ffmpeg-python
