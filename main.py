@@ -161,7 +161,7 @@ if __name__ == "__main__":
     damp_cons = 4000               # Damping constant  
     
     # Animation model
-    spring_leng  = 0.4             # Spring relaxed length  [m]
+    spring_leng  = 0.9             # Spring relaxed length  [m]
     side_cube = 1                  # Size cube              [m]
 
     # Video
@@ -169,9 +169,9 @@ if __name__ == "__main__":
     fram_res   = 30                # Frame rate             [fps]
 
     # Base input
-    amp = 0.1                      # Amplitude              [m]
+    amp = 0.2                      # Amplitude              [m]
     freq = 1.0                     # Frequency             [Hz]
 
-    two_sys = True
+    two_sys = False
 
     main(mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq, two_sys)
