@@ -172,6 +172,6 @@ if __name__ == "__main__":
     amp = 0.2                      # Amplitude              [m]
     freq = 1.0                     # Frequency             [Hz]
 
-    two_sys = False
+    two_sys = True
 
     main(mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq, two_sys)
