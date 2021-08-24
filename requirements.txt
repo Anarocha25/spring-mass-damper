@@ -1,0 +1,8 @@
+numpy
+scipy
+vedo
+vtk
+PyQt5
+pyopengl
+pyqtgraph
+ffmpeg-python
