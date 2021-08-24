@@ -1,4 +1,4 @@
-# 1 DOF spring mass damper system
+# Spring mass damper system
 
 
 ![alt-text-1](https://github.com/Anarocha25/mass-spring-damper---1-DOF/blob/main/2block.gif) ![alt-text-2](https://github.com/Anarocha25/mass-spring-damper---1-DOF/blob/main/block.gif)
