@@ -1,5 +1,18 @@
 # Spring mass damper system
 
+## Prerequisites
+
+You will need Python 3.6 or +
+
+To install the requirements execute
+
+	pip install -r requirements.txt
+
+## Run
+
+Execute the code running the file:
+
+    main.py
 
 ![alt-text-1](https://github.com/Anarocha25/mass-spring-damper---1-DOF/blob/main/2block.gif) ![alt-text-2](https://github.com/Anarocha25/mass-spring-damper---1-DOF/blob/main/block.gif)
 
