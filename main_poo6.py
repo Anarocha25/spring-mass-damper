@@ -27,34 +27,6 @@ class MassSpringDamper():
 
         self.block_ratio = self.side_cube/2
 
-        self.redpt_ratio = 5 * self.side_cube
-
-        self.block = self.block([0, 0, self.yc[0]+self.block_ratio], self.side_cube, (128,128,128))
-
-        self.spring = self.spring([self.side_cube/4, 0, -0.8], [self.side_cube/4, 0, self.yc[0]], 0.15 * self.side_cube, 'gray5')
-
-        self.cylinder = self.cylinder([[-self.side_cube/4, 0, -0.8], [-self.side_cube/4, 0, -0.2]], 'gray6', self.side_cube * 0.2)
-
-        self.tube = self.tube([[-self.side_cube/4, 0, -0.2], [-self.side_cube/4, 0, self.yc[0]]], self.side_cube * 0.15, 'gray5')
-
-        x_vals = self.__map_value(self.time, self.side_cube, 2.5 * self.side_cube)
-
-        self.pos_points = self.pos_points(side_cube, x_vals, self.yc + self.block_ratio)
-
-        self.line_cos = self.line(self.pos_points)
-
-        self.redpt = self.point(self.pos_points[0,:], 'red', self.redpt_ratio) 
-
-        self.redpt_block = self.point([0, self.block_ratio, self.yc[0] + self.block_ratio], 'red', self.redpt_ratio)
-
-        self.line_x = self.line([x_vals[0], self.block_ratio, np.median(self.yc) + self.block_ratio], [x_vals[-1] + 2 * self.dt, self.block_ratio, np.median(self.yc) + self.block_ratio])
-        
-        self.txt_time = self.text('time', 0.05*side_cube, (x_vals[-1]+2 * self.dt, self.block_ratio, np.median(self.yc) + self.block_ratio), 270)
-
-        self.line_y = self.line([x_vals[0], self.block_ratio, max(self.yc) + self.block_ratio], [x_vals[0], self.block_ratio, min(self.yc) + self.block_ratio])
-        
-        self.txt_U = self.text('U', 0.05 * self.side_cube, (x_vals[0], self.block_ratio, min(self.yc) + self.block_ratio), 270)
-
     def __simulation(self):
         # Transfer function model
         G = signal.TransferFunction([self.damp_cons, self.spring_cons], [self.mass, self.damp_cons, self.spring_cons])
@@ -63,7 +35,7 @@ class MassSpringDamper():
         t, y, x = signal.lsim(G, self.u_vet, self.time)
         return y
 
-    def __map_value(self, x, out_min, out_max):
+    def map_value(self, x, out_min, out_max):
         return (x - min(x)) * (out_max - out_min) / (max(x) - min(x)) + out_min
 
     def block(self, pos, side, color):
@@ -96,6 +68,75 @@ class MassSpringDamper():
         txt_3d = vd.shapes.Text3D(txt=txt, s=size, pos=pos) 
         txt_3d.rotateX(angle, locally=True)
         return txt_3d
+
+class MassSpringDamperSys1(MassSpringDamper):
+        def __init__(self, mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq):
+            super().__init__(mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq)
+
+            self.redpt_ratio = 5 * self.side_cube
+
+            self.block = self.block([0, 0, self.yc[0]+self.block_ratio], self.side_cube, (128,128,128))
+
+            self.spring = self.spring([self.side_cube/4, 0, -0.8], [self.side_cube/4, 0, self.yc[0]], 0.15 * self.side_cube, 'gray5')
+
+            self.cylinder = self.cylinder([[-self.side_cube/4, 0, -0.8], [-self.side_cube/4, 0, -0.2]], 'gray6', self.side_cube * 0.2)
+
+            self.tube = self.tube([[-self.side_cube/4, 0, -0.2], [-self.side_cube/4, 0, self.yc[0]]], self.side_cube * 0.15, 'gray5')
+
+            x_vals = self.map_value(self.time, self.side_cube, 2.5 * self.side_cube)
+
+            self.pos_points = self.pos_points(side_cube, x_vals, self.yc + self.block_ratio)
+
+            self.line_cos = self.line(self.pos_points)
+
+            self.redpt = self.point(self.pos_points[0,:], 'red', self.redpt_ratio) 
+
+            self.redpt_block = self.point([0, self.block_ratio, self.yc[0] + self.block_ratio], 'red', self.redpt_ratio)
+
+            self.line_x = self.line([x_vals[0], self.block_ratio, np.median(self.yc) + self.block_ratio], [x_vals[-1] + 2 * self.dt, self.block_ratio, np.median(self.yc) + self.block_ratio])
+            
+            self.txt_time = self.text('time', 0.05*side_cube, (x_vals[-1]+2 * self.dt, self.block_ratio, np.median(self.yc) + self.block_ratio), 270)
+
+            self.line_y = self.line([x_vals[0], self.block_ratio, max(self.yc) + self.block_ratio], [x_vals[0], self.block_ratio, min(self.yc) + self.block_ratio])
+            
+            self.txt_U = self.text('U', 0.05 * self.side_cube, (x_vals[0], self.block_ratio, min(self.yc) + self.block_ratio), 270)
+
+class MassSpringDamperSys2(MassSpringDamper):
+        def __init__(self, yc, mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq):
+            super().__init__(mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq)
+
+            self.init_point = yc[0] + self.side_cube
+
+            self.redpt_ratio = 5
+
+            self.block = self.block([0, 0,self.init_point + self.block_ratio + self.yc[0] + 0.8], self.side_cube, (128,128,128))
+
+            self.spring = self.spring([side_cube/4, 0,self.init_point], [side_cube/4, 0, self.yc[0] +self.init_point + 0.8], 0.15 * side_cube, 'gray5')
+
+            self.cylinder = self.cylinder([[-side_cube/4, 0,self.init_point], [-side_cube/4, 0,self.init_point + 0.6]], 'gray6', side_cube * 0.2)
+
+            self.tube = self.tube([[-side_cube/4, 0,self.init_point + 0.6], [-side_cube/4, 0, self.yc[0] +self.init_point + 0.8]], side_cube * 0.15, 'gray5')
+
+            x_vals2 = self.map_value(self.time, self.side_cube, 2.5 * self.side_cube)
+
+            self.pos_points = self.pos_points(self.side_cube, x_vals2, self.yc + self.block_ratio + 0.8 +self.init_point)
+
+            self.line_cos = self.line(self.pos_points)
+
+            self.redpt = self.point(self.pos_points[0,:], 'red', self.redpt_ratio)
+
+            self.redpt_block = self.point([0, self.block_ratio, self.yc[0] + self.init_point + 0.8 + self.block_ratio], 'red', self.redpt_ratio)
+
+            self.line_x = self.line([x_vals2[0], self.block_ratio, np.median(self.yc) +self.init_point + 0.8 + self.block_ratio], \
+                           [x_vals2[-1] + 2 * self.dt, self.block_ratio, np.median(self.yc) + self.init_point + 0.8 + self.block_ratio])
+            
+            self.txt_time = self.text('time', 0.05 * self.side_cube, (x_vals2[-1] + 2 * self.dt, self.block_ratio, \
+                                    np.median(self.yc) + self.init_point + 0.8 + self.block_ratio), 270)
+
+            self.line_y = self.line([x_vals2[0], self.block_ratio, max(self.yc)+self.block_ratio + self.init_point+0.8], \
+                                [x_vals2[0], self.block_ratio, min(self.yc) + self.block_ratio + self.init_point + 0.8])
+            
+            self.txt_U = self.text('U', 0.05 * self.side_cube, (x_vals2[0], self.block_ratio, min(self.yc) + self.block_ratio + self.init_point + 0.8), 270)
 
 class PopUp(QtWidgets.QDialog):
     def __init__(self, warnings):
@@ -194,7 +235,7 @@ class Parameters():
         layout.addWidget(self.spring_leng2)
 
         layout.addWidget(QtWidgets.QLabel('Side cube'))
-        layout.addWidget(self.side_cube2)
+        layout.addWidget(self.side_cube)
 
         layout.addWidget(QtWidgets.QLabel('Amplitude'))
         layout.addWidget(self.amp2)
@@ -221,7 +262,7 @@ class Parameters():
         self.damp_cons2.setText('4000')
 
         self.spring_leng2.setText('0.9')
-        self.side_cube2.setText('1')
+        self.side_cube.setText('1')
 
         self.amp2.setText('0.2')
         self.freq2.setText('1')
@@ -248,7 +289,7 @@ class Parameters():
             self.damp_cons_par2 = ast.literal_eval(self.damp_cons2.text())
             
             self.spring_leng_par2 = ast.literal_eval(self.spring_leng2.text())
-            self.side_cube_par2   = ast.literal_eval(self.side_cube2.text())
+            self.side_cube_par2   = ast.literal_eval(self.side_cube.text())
             
             self.amp_par2 = ast.literal_eval(self.amp2.text())
             self.freq_par2 = ast.literal_eval(self.freq2.text())
@@ -279,13 +320,27 @@ class MainWindow(QtWidgets.QDialog):
         self.param = Parameters()
         self.param.add_widgtes(left_layout)
 
+        self.param.two_sys_check.toggled.connect(self.param.mass2.setEnabled)
+        self.param.two_sys_check.toggled.connect(self.param.spring_cons2.setEnabled)
+        self.param.two_sys_check.toggled.connect(self.param.damp_cons2.setEnabled)
+        self.param.two_sys_check.toggled.connect(self.param.spring_leng2.setEnabled)
+        self.param.two_sys_check.toggled.connect(self.param.side_cube2.setEnabled)
+        self.param.two_sys_check.toggled.connect(self.param.amp2.setEnabled)
+        self.param.two_sys_check.toggled.connect(self.param.freq2.setEnabled)
+
         self.button_run = QtWidgets.QPushButton('Run')
         left_layout.addWidget(self.button_run)
         self.counter_button_run = 0
         self.button_run.clicked.connect(lambda: self.run())
     
         self.button_stop = QtWidgets.QPushButton('Stop')
+        self.button_stop.setEnabled(False)
         left_layout.addWidget(self.button_stop)
+
+        self.button_run.clicked.connect(lambda: self.button_stop.setEnabled(True))
+        self.button_run.clicked.connect(lambda: self.button_run.setEnabled(False))
+
+        self.stop_thread = False
 
         left_layout.addStretch(5)
         left_layout.setSpacing(20)
@@ -377,10 +432,20 @@ class MainWindow(QtWidgets.QDialog):
             self.worker.start()
             self.worker.complete_worker.connect(lambda: self.worker.quit())
             self.worker.complete_worker.connect(lambda: self.worker.deleteLater())
+            self.worker.complete_worker.connect(lambda: self.button_stop.setEnabled(False))
+            self.worker.complete_worker.connect(lambda: self.button_run.setEnabled(True))
             self.worker.update_plot.connect(self.evt_update)
             self.worker.update_progess.connect(self.evt_update_progress)
+
+            self.button_stop.clicked.connect(lambda: self.test())
+            self.button_stop.clicked.connect(lambda: self.button_run.setEnabled(True))
+            self.button_stop.clicked.connect(lambda: self.button_stop.setEnabled(False))
+          
             print('passou um aviao')
-            
+
+    def test(self):
+        self.stop_thread=True
+
     def evt_update(self):
         self.vp.interactor.Render()
 
@@ -405,22 +470,40 @@ class WorkerThread(QtCore.QThread):
     @QtCore.pyqtSlot()
     def run(self):
         # Create mass spring damper system
-        self.sys1 = MassSpringDamper(self.parent.param.mass_par, self.parent.param.damp_cons_par, self.parent.param.spring_cons_par, \
+        self.sys1 = MassSpringDamperSys1(self.parent.param.mass_par, self.parent.param.damp_cons_par, self.parent.param.spring_cons_par, \
                                   self.parent.param.spring_leng_par, self.parent.param.side_cube_par, self.parent.param.end_time_par, \
                                   self.parent.param.fram_res_par, self.parent.param.amp_par, self.parent.param.freq_par)
-
+        
+        yc_max = np.max(self.sys1.yc)
+        side_cube_max = self.sys1.side_cube
+  
+        if self.parent.param.two_sys:
+            self.sys2 = MassSpringDamperSys2(self.sys1.yc, self.parent.param.mass_par2, self.parent.param.damp_cons_par2, self.parent.param.spring_cons_par2, \
+                                    self.parent.param.spring_leng_par2, self.parent.param.side_cube_par2, self.parent.param.end_time_par, \
+                                    self.parent.param.fram_res_par, self.parent.param.amp_par2, self.parent.param.freq_par2)
+            
+            base_cyli2 = np.array([-self.sys1.side_cube/4, 0, self.sys2.init_point])
+            top_cyli2 = np.array([-self.sys1.side_cube/4, 0, self.sys2.init_point + 0.6])
+            
+            yc_max = np.maximum(np.max(self.sys2.yc), np.max(self.sys1.yc))
+            side_cube_max = np.maximum(self.sys2.side_cube, self.sys1.side_cube)
+            
         wall = vd.shapes.Box(pos=(0, 0, -0.8), length=1.5 * self.sys1.side_cube, width=1.5 * self.sys1.side_cube, \
                             height=0.05 * self.sys1.side_cube, c=(128,128,128))  
         
         const = 2 if self.parent.param.two_sys else 1
         
-        height_surf = const*(0.8 + np.max(self.sys1.yc) + self.sys1.side_cube)
+        height_surf = const*(0.8 + yc_max + side_cube_max)
         
-        surface = vd.shapes.Box(pos=(0, -self.sys1.side_cube, -0.8 + (height_surf/2)), length=2 * self.sys1.side_cube, width=0.02, \
+        surface = vd.shapes.Box(pos=(0, -side_cube_max, -0.8 + (height_surf/2)), length=2 * side_cube_max, width=0.02, \
                                 height=height_surf, alpha=0)
 
         self.parent.vp += [wall, surface, self.sys1.block, self.sys1.spring, self.sys1.tube, self.sys1.cylinder, self.sys1.redpt, \
                 self.sys1.line_cos, self.sys1.line_x, self.sys1.line_y, self.sys1.txt_U, self.sys1.txt_time, self.sys1.redpt_block]
+        
+        if self.parent.param.two_sys:
+            self.parent.vp += [self.sys2.block, self.sys2.spring, self.sys2.tube, self.sys2.cylinder, self.sys2.redpt, \
+                    self.sys2.line_cos, self.sys2.line_x, self.sys2.line_y, self.sys2.txt_U, self.sys2.txt_time, self.sys2.redpt_block]
         
         self.parent.vp.resetCamera()
 
@@ -430,16 +513,34 @@ class WorkerThread(QtCore.QThread):
         self.update_progess.emit(4)
         pbar_vals = self.map_value(np.arange(0, len(self.sys1.yc)), 4, 100)
         for i, yc_i in enumerate(self.sys1.yc):
-            self.parent.vp.actors[6].pos(self.sys1.pos_points[i])
-            self.parent.vp.actors[2].pos([0, 0, yc_i + self.sys1.block_ratio])  
-            self.parent.vp.actors[-1].pos(0, self.sys1.block_ratio, yc_i + self.sys1.block_ratio)
-            self.parent.vp.actors[3].stretch([self.sys1.side_cube/4, 0,-0.8],[self.sys1.side_cube/4, 0, yc_i])
-            self.parent.vp.actors[4].stretch([-self.sys1.side_cube/4, 0, -0.2], [-self.sys1.side_cube/4, 0, yc_i])
+            self.parent.vp.actors[6].pos(self.sys1.pos_points[i]) #redpoint
+            self.parent.vp.actors[2].pos([0, 0, yc_i + self.sys1.block_ratio])  #block
+            self.parent.vp.actors[12].pos(0, self.sys1.block_ratio, yc_i + self.sys1.block_ratio) #redpt_block
+            self.parent.vp.actors[3].stretch([self.sys1.side_cube/4, 0,-0.8],[self.sys1.side_cube/4, 0, yc_i]) #spring
+            self.parent.vp.actors[4].stretch([-self.sys1.side_cube/4, 0, -0.2], [-self.sys1.side_cube/4, 0, yc_i]) #tube
+            
+            if self.parent.param.two_sys:
+                init_point = yc_i + self.sys1.side_cube
+                yc2_i = self.sys2.yc[i]
+                
+                self.parent.vp.actors[17].pos(self.sys2.pos_points[i]) #redpt2
+                self.parent.vp.actors[13].pos([0, 0, yc2_i + self.sys2.block_ratio + 0.8 + init_point]) #block
+                self.parent.vp.actors[23].pos(0, self.sys2.block_ratio, yc2_i + self.sys2.block_ratio + 0.8 + init_point) #redpt_block2
+                self.parent.vp.actors[14].stretch([self.sys1.side_cube/4, 0,init_point], [self.sys1.side_cube/4, 0, yc2_i + init_point + 0.8]) #spring
+                self.parent.vp.actors[15].stretch([-self.sys1.side_cube/4, 0,init_point + 0.6], [-self.sys1.side_cube/4, 0, yc2_i + init_point + 0.8]) #tube
+
+                base_cyli2[2] = init_point
+                top_cyli2[2]  = init_point + 0.6
+                pos = (base_cyli2 + top_cyli2)/2
+                self.parent.vp.actors[16].pos(pos) #cylinder
+            
             self.update_plot.emit(self.parent.vp)
             self.update_progess.emit(pbar_vals[i])
-            QtWidgets.QApplication.processEvents() 
+            QtWidgets.QApplication.processEvents()
+            if self.parent.stop_thread:
+                self.parent.stop_thread = False
+                break
         self.complete_worker.emit(True)
-
 
 if __name__ == "__main__":
 
