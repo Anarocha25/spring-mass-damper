@@ -4,6 +4,7 @@ import vedo as vd
 
 import sys
 import ast
+import cv2
 from PyQt5 import Qt, QtWidgets, QtCore
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
@@ -183,12 +184,48 @@ class Parameters():
         self.freq2 = QtWidgets.QLineEdit()
         self.freq2.setDisabled(True)
 
+        self.save_check = QtWidgets.QCheckBox("Save")
+        self.name_save_line = QtWidgets.QLineEdit()
+        self.name_save_line.setDisabled(True)
+
         self.warnings = []
 
         self._set_default()
         self.update_params()
 
-        self.text = """ vazzio por enquanto """
+        self.text =  """ 
+                    <p style="text-align:center;"> <b> <font size="+8"> Spring mass damper system </font> </b>
+                   <hr>
+                    
+                    <p> <b> <font size="+5"> Parameters </font> </b>
+                    
+                    <p> <b> <font size="+3"> Video </font> </b>
+                    
+                    <p style="margin-left:2em"> <font size="+3"> end_time (<i>int</i>):  Final time [s]  </font> </p>
+                    <p style="margin-left:2em"> <font size="+3"> fram_res (<i>int</i>): Frame rate [fps] </font> </p>
+                    
+                    <p> <b> <font size="+3"> System </font> </b>
+                    
+                    <p style="margin-left:2em"> <font size="+3"> mass (<i>float</i>): Mass [kg] </font> </p>
+                    <p style="margin-left:2em"> <font size="+3"> spring_cons (<i>float</i>): Spring constant [N/m] </font> </p>
+                    <p style="margin-left:2em"> <font size="+3"> damp_cons (<i>float</i>): Damping constant </font> </p>
+                    
+                    <p> <b> <font size="+3"> Animation Model </font> </b>
+
+                    <p style="margin-left:2em"> <font size="+3"> spring_leng  (<i>float</i>): Spring relaxed length [m] </font> </p>
+                    <p style="margin-left:2em"> <font size="+3"> side_cube  (<i>int</i>): Size cube [m] </font> </p>
+                    
+                    <p> <b> <font size="+3"> Base input </font> </b>
+
+                    <p style="margin-left:2em"> <font size="+3">  amp (<i>float</i>): Amplitude [m] </font> </p>
+                    <p style="margin-left:2em"> <font size="+3">  freq (<i>int</i>): Frequency [Hz] </font> </p>
+                    
+                    <p> <b> <font size="+3"> Two systems </font> </b>
+
+                    <p style="margin-left:2em"> <font size="+3"> two_sys (<i>bool</i>): If True is considered two mass spring damper systems. </font> </p>
+                    <p style="margin-left:14em"> <font size="+3"> The parameters are the same from the first system. </p>
+                    
+                    """
 
     def add_widgtes(self, layout):
         layout.addWidget(QtWidgets.QLabel('Final time'))
@@ -242,6 +279,11 @@ class Parameters():
 
         layout.addWidget(QtWidgets.QLabel('Frequency'))
         layout.addWidget(self.freq2)
+
+        layout.addWidget(self.save_check)
+
+        layout.addWidget(QtWidgets.QLabel('Name to save'))
+        layout.addWidget(self.name_save_line)
     
     def _set_default(self):       
         self.end_time.setText('30')
@@ -266,6 +308,8 @@ class Parameters():
 
         self.amp2.setText('0.2')
         self.freq2.setText('1')
+
+        self.name_save_line.setText('system')
 
     def update_params(self): 
         self.end_time_par = ast.literal_eval(self.end_time.text())
@@ -293,9 +337,33 @@ class Parameters():
             
             self.amp_par2 = ast.literal_eval(self.amp2.text())
             self.freq_par2 = ast.literal_eval(self.freq2.text())
+        
+        self.save = self.save_check.checkState()
+        self.name_save = self.name_save_line.text()
 
+    def check_param(self, input_val, types, war):
+        try:
+            for type in types:
+                isinstance(ast.literal_eval(input_val), type)
+        except ValueError:
+            warning = QtWidgets.QLabel(war)
+            self.warnings.append(warning)
+        
     def check_params(self):
-        pass
+        self.warnings = []
+
+        self.check_param(self.mass.text(), [int, float], 'Mass must be an int or float')
+        self.check_param(self.damp_cons.text(), [int, float], 'Spring constant must be an int or a float')
+        self.check_param(self.spring_cons.text(), [int, float], 'Mass must be an int or a float')
+
+        self.check_param(self.end_time.text(), [int], 'Final time must be an int')
+        self.check_param(self.fram_res.text(), [int], 'Frame rate must be an int')
+
+        self.check_param(self.spring_leng.text(), [int, float], 'Spring relaxed length must be an int or float')
+        self.check_param(self.side_cube.text(), [int, float], 'Size cube must be an int or float')
+        
+        self.check_param(self.amp.text(), [int, float], 'Amplitude must be an int or float')
+        self.check_param(self.freq.text(), [int], 'Frequency must be an int')
 
 class ParametersText():
     def __init__(self):
@@ -328,6 +396,8 @@ class MainWindow(QtWidgets.QDialog):
         self.param.two_sys_check.toggled.connect(self.param.amp2.setEnabled)
         self.param.two_sys_check.toggled.connect(self.param.freq2.setEnabled)
 
+        self.param.save_check.toggled.connect(self.param.name_save_line.setEnabled)
+
         self.button_run = QtWidgets.QPushButton('Run')
         left_layout.addWidget(self.button_run)
         self.counter_button_run = 0
@@ -336,9 +406,6 @@ class MainWindow(QtWidgets.QDialog):
         self.button_stop = QtWidgets.QPushButton('Stop')
         self.button_stop.setEnabled(False)
         left_layout.addWidget(self.button_stop)
-
-        self.button_run.clicked.connect(lambda: self.button_stop.setEnabled(True))
-        self.button_run.clicked.connect(lambda: self.button_run.setEnabled(False))
 
         self.stop_thread = False
 
@@ -401,6 +468,10 @@ class MainWindow(QtWidgets.QDialog):
         self.vp = vd.Plotter(axes=4, qtWidget=self.vtkWidget)
         self.vp.show(azimuth=90, elevation=80, roll=90, resetcam=True)
 
+        if self.param.save:
+            # open a video file
+            self.video = vd.io.Video(str(self.param.name_save)+".mp4", backend='opencv', fps=self.param.fram_res_par)
+            
         # Set-up the rest of the Qt window
         self.pbar = QtWidgets.QProgressBar()
         new_layout.addWidget(self.pbar)
@@ -421,6 +492,9 @@ class MainWindow(QtWidgets.QDialog):
             dlg = PopUp(self.param.warnings)      
             dlg.exec_()
         else:
+            self.button_stop.setEnabled(True)
+            self.button_run.setEnabled(False)
+
             self.counter_button_run += 1
             if self.counter_button_run == 1:
                 self.right_widget.setCurrentIndex(1)
@@ -430,10 +504,15 @@ class MainWindow(QtWidgets.QDialog):
             
             self.worker = WorkerThread(parent=self)
             self.worker.start()
-            self.worker.complete_worker.connect(lambda: self.worker.quit())
+            self.worker.complete_worker.connect(lambda: self.worker.terminate())
             self.worker.complete_worker.connect(lambda: self.worker.deleteLater())
+
+            if self.param.save:
+                self.worker.complete_worker.connect(lambda: self.video.close())
+            
             self.worker.complete_worker.connect(lambda: self.button_stop.setEnabled(False))
             self.worker.complete_worker.connect(lambda: self.button_run.setEnabled(True))
+            
             self.worker.update_plot.connect(self.evt_update)
             self.worker.update_progess.connect(self.evt_update_progress)
 
@@ -448,6 +527,8 @@ class MainWindow(QtWidgets.QDialog):
 
     def evt_update(self):
         self.vp.interactor.Render()
+        if self.param.save:
+            self.video.addFrame()
 
     def evt_update_progress(self, val):
         self.pbar.setValue(val)
