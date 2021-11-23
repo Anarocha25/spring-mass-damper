@@ -1,143 +1,14 @@
 import numpy as np
-from scipy import signal
 import vedo as vd
 
 import sys
+import os
 import ast
 import cv2
 from PyQt5 import Qt, QtWidgets, QtCore
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
-class MassSpringDamper():
-    def __init__(self, mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq):
-        self.mass = mass
-        self.damp_cons = damp_cons
-        self.spring_cons = spring_cons
-        
-        self.spring_len = spring_leng 
-        self.side_cube = side_cube
-
-        self.dt   = 1/fram_res                                # Time resolution        [s]
-        self.time = np.linspace(0, end_time, end_time * fram_res) # Time 
-
-        w_freq = 2 * np.pi * freq                           # Frequency        [rad/s]
-        self.u_vet = amp * np.cos(w_freq * self.time)       # Displacement  
-
-        self.yc = self.__simulation()
-        self.yc += spring_leng
-
-        self.block_ratio = self.side_cube/2
-
-    def __simulation(self):
-        # Transfer function model
-        G = signal.TransferFunction([self.damp_cons, self.spring_cons], [self.mass, self.damp_cons, self.spring_cons])
-
-        # Integration
-        t, y, x = signal.lsim(G, self.u_vet, self.time)
-        return y
-
-    def map_value(self, x, out_min, out_max):
-        return (x - min(x)) * (out_max - out_min) / (max(x) - min(x)) + out_min
-
-    def block(self, pos, side, color):
-        return vd.shapes.Cube(pos=pos, side=side, c=color)
-
-    def spring(self, start_point, end_point, ratio, color):
-        return vd.shapes.Spring(start_point, end_point, r=ratio, thickness=0.01, c=color)
-
-    def cylinder(self, pos, color, ratio):
-        return vd.shapes.Cylinder(pos=pos, c=color, r=ratio)
-
-    def tube(self, points, ratio, color):
-        return vd.shapes.Tube(points=points, r=ratio, c=color)
-
-    def pos_points(self, side_cube, x_vals, z):
-        points = np.empty((len(x_vals), 3))
-        points[:, 0] = x_vals
-        block_ratio = side_cube/2
-        points[:, 1] = block_ratio
-        points[:, 2] = z
-        return points
-
-    def line(self, points1, points2=None):
-        return vd.shapes.Line(points1, points2)
-
-    def point(self, pos, color, ratio):
-        return vd.pointcloud.Point(r=ratio).c(color).pos(pos)
-
-    def text(self, txt, size, pos, angle):
-        txt_3d = vd.shapes.Text3D(txt=txt, s=size, pos=pos) 
-        txt_3d.rotateX(angle, locally=True)
-        return txt_3d
-
-class MassSpringDamperSys1(MassSpringDamper):
-        def __init__(self, mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq):
-            super().__init__(mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq)
-
-            self.redpt_ratio = 5 * self.side_cube
-
-            self.block = self.block([0, 0, self.yc[0]+self.block_ratio], self.side_cube, (128,128,128))
-
-            self.spring = self.spring([self.side_cube/4, 0, -0.8], [self.side_cube/4, 0, self.yc[0]], 0.15 * self.side_cube, 'gray5')
-
-            self.cylinder = self.cylinder([[-self.side_cube/4, 0, -0.8], [-self.side_cube/4, 0, -0.2]], 'gray6', self.side_cube * 0.2)
-
-            self.tube = self.tube([[-self.side_cube/4, 0, -0.2], [-self.side_cube/4, 0, self.yc[0]]], self.side_cube * 0.15, 'gray5')
-
-            x_vals = self.map_value(self.time, self.side_cube, 2.5 * self.side_cube)
-
-            self.pos_points = self.pos_points(side_cube, x_vals, self.yc + self.block_ratio)
-
-            self.line_cos = self.line(self.pos_points)
-
-            self.redpt = self.point(self.pos_points[0,:], 'red', self.redpt_ratio) 
-
-            self.redpt_block = self.point([0, self.block_ratio, self.yc[0] + self.block_ratio], 'red', self.redpt_ratio)
-
-            self.line_x = self.line([x_vals[0], self.block_ratio, np.median(self.yc) + self.block_ratio], [x_vals[-1] + 2 * self.dt, self.block_ratio, np.median(self.yc) + self.block_ratio])
-            
-            self.txt_time = self.text('time', 0.05*side_cube, (x_vals[-1]+2 * self.dt, self.block_ratio, np.median(self.yc) + self.block_ratio), 270)
-
-            self.line_y = self.line([x_vals[0], self.block_ratio, max(self.yc) + self.block_ratio], [x_vals[0], self.block_ratio, min(self.yc) + self.block_ratio])
-            
-            self.txt_U = self.text('U', 0.05 * self.side_cube, (x_vals[0], self.block_ratio, min(self.yc) + self.block_ratio), 270)
-
-class MassSpringDamperSys2(MassSpringDamper):
-        def __init__(self, yc, mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq):
-            super().__init__(mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq)
-
-            self.init_point = yc[0] + self.side_cube
-
-            self.redpt_ratio = 5
-
-            self.block = self.block([0, 0,self.init_point + self.block_ratio + self.yc[0] + 0.8], self.side_cube, (128,128,128))
-
-            self.spring = self.spring([side_cube/4, 0,self.init_point], [side_cube/4, 0, self.yc[0] +self.init_point + 0.8], 0.15 * side_cube, 'gray5')
-
-            self.cylinder = self.cylinder([[-side_cube/4, 0,self.init_point], [-side_cube/4, 0,self.init_point + 0.6]], 'gray6', side_cube * 0.2)
-
-            self.tube = self.tube([[-side_cube/4, 0,self.init_point + 0.6], [-side_cube/4, 0, self.yc[0] +self.init_point + 0.8]], side_cube * 0.15, 'gray5')
-
-            x_vals2 = self.map_value(self.time, self.side_cube, 2.5 * self.side_cube)
-
-            self.pos_points = self.pos_points(self.side_cube, x_vals2, self.yc + self.block_ratio + 0.8 +self.init_point)
-
-            self.line_cos = self.line(self.pos_points)
-
-            self.redpt = self.point(self.pos_points[0,:], 'red', self.redpt_ratio)
-
-            self.redpt_block = self.point([0, self.block_ratio, self.yc[0] + self.init_point + 0.8 + self.block_ratio], 'red', self.redpt_ratio)
-
-            self.line_x = self.line([x_vals2[0], self.block_ratio, np.median(self.yc) +self.init_point + 0.8 + self.block_ratio], \
-                           [x_vals2[-1] + 2 * self.dt, self.block_ratio, np.median(self.yc) + self.init_point + 0.8 + self.block_ratio])
-            
-            self.txt_time = self.text('time', 0.05 * self.side_cube, (x_vals2[-1] + 2 * self.dt, self.block_ratio, \
-                                    np.median(self.yc) + self.init_point + 0.8 + self.block_ratio), 270)
-
-            self.line_y = self.line([x_vals2[0], self.block_ratio, max(self.yc)+self.block_ratio + self.init_point+0.8], \
-                                [x_vals2[0], self.block_ratio, min(self.yc) + self.block_ratio + self.init_point + 0.8])
-            
-            self.txt_U = self.text('U', 0.05 * self.side_cube, (x_vals2[0], self.block_ratio, min(self.yc) + self.block_ratio + self.init_point + 0.8), 270)
+from z_system import MassSpringDamperSys1, MassSpringDamperSys2
 
 class PopUp(QtWidgets.QDialog):
     def __init__(self, warnings):
@@ -341,6 +212,43 @@ class Parameters():
         self.save = self.save_check.checkState()
         self.name_save = self.name_save_line.text()
 
+    def export_param(self):
+        param1 = {"fram_res_par":self.fram_res_par, "mass_par":self.mass_par, "damp_cons_par":self.damp_cons_par, "spring_cons_par":self.spring_cons_par, \
+        "spring_leng_par":self.spring_leng_par, "side_cube_par":self.side_cube_par, "end_time_par":self.end_time_par, "fram_res_par":self.fram_res_par, \
+        "amp_par":self.amp_par, "freq_par":self.freq_par, "two_sys":self.two_sys, "name_save":self.name_save}
+
+        if self.two_sys:
+            param2 = {"mass_par2":self.mass_par2, "damp_cons_par2":self.damp_cons_par2, \
+            "spring_cons_par2":self.spring_cons_par2, "spring_leng_par2":self.spring_leng_par2, "side_cube_par2":self.side_cube_par2, \
+            "amp_par2":self.amp_par2, "freq_par2":self.freq_par2}
+        
+        folder_name = 'temp'
+        directory = os.path.join(os.path.dirname(__file__), folder_name)
+        os.makedirs(directory, exist_ok=True)
+
+        try: 
+            # WRITE
+            dir_file = os.path.join(directory, 'param1_file.txt')
+            # open file for writing
+            f = open(dir_file,"w")
+            # write file
+            f.write(str(param1))
+            # close file
+            f.close()
+
+            if self.two_sys:
+                # WRITE
+                dir_file = os.path.join(directory, 'param2_file.txt')
+                # open file for writing
+                f = open(dir_file,"w")
+                # write file
+                f.write(str(param2))
+                # close file
+                f.close()
+
+        except: 
+            print("Something went wrong")
+
     def check_param(self, input_val, types, war):
         try:
             for type in types:
@@ -378,10 +286,7 @@ class ParametersText():
 
 class MainWindow(QtWidgets.QDialog):
     def __init__(self):
-        super(MainWindow, self).__init__()
-        # Progress bar
-        self.pbar = QtWidgets.QProgressBar()
-        
+        super(MainWindow, self).__init__()       
         # lateral menu
         left_layout = QtWidgets.QVBoxLayout()
 
@@ -408,6 +313,8 @@ class MainWindow(QtWidgets.QDialog):
         left_layout.addWidget(self.button_stop)
 
         self.stop_thread = False
+        self.process_save = None
+        self.worker = None
 
         left_layout.addStretch(5)
         left_layout.setSpacing(20)
@@ -467,15 +374,13 @@ class MainWindow(QtWidgets.QDialog):
         # Create renderer and add the vedo objects
         self.vp = vd.Plotter(axes=4, qtWidget=self.vtkWidget)
         self.vp.show(azimuth=90, elevation=80, roll=90, resetcam=True)
-
-        if self.param.save:
-            # open a video file
-            self.video = vd.io.Video(str(self.param.name_save)+".mp4", backend='opencv', fps=self.param.fram_res_par)
             
-        # Set-up the rest of the Qt window
-        self.pbar = QtWidgets.QProgressBar()
-        new_layout.addWidget(self.pbar)
         new_layout.addWidget(self.vtkWidget)
+
+        self.text = QtWidgets.QPlainTextEdit()
+        self.text.setFixedSize(150, 50)
+        self.text.setReadOnly(True)
+        new_layout.addWidget(self.text)
         self.update_ui2_layout(new_layout)
 
     def update_ui2_layout(self, new_layout):
@@ -501,52 +406,98 @@ class MainWindow(QtWidgets.QDialog):
                 
             self.param.update_params()
             self.add_sys_ui2()
-            
-            self.worker = WorkerThread(parent=self)
-            self.worker.start()
-            self.worker.complete_worker.connect(lambda: self.worker.terminate())
-            self.worker.complete_worker.connect(lambda: self.worker.deleteLater())
+
+            self.message("Running")
 
             if self.param.save:
-                self.worker.complete_worker.connect(lambda: self.video.close())
-            
-            self.worker.complete_worker.connect(lambda: self.button_stop.setEnabled(False))
-            self.worker.complete_worker.connect(lambda: self.button_run.setEnabled(True))
-            
+                self.param.export_param() 
+
+                self.process_save = QtCore.QProcess()
+                #self.process_save.readyReadStandardOutput.connect(self.handle_stdout)
+                #self.process_save.readyReadStandardError.connect(self.handle_stderr)
+                #self.process_save.stateChanged.connect(self.handle_state)
+                self.process_save.start("python", ['z_process.py'])
+                self.process_save.finished.connect(lambda: self.finish_process())
+                
+
+            self.worker = WorkerThread(parent=self)
+            self.worker.start()
             self.worker.update_plot.connect(self.evt_update)
-            self.worker.update_progess.connect(self.evt_update_progress)
-
-            self.button_stop.clicked.connect(lambda: self.test())
-            self.button_stop.clicked.connect(lambda: self.button_run.setEnabled(True))
-            self.button_stop.clicked.connect(lambda: self.button_stop.setEnabled(False))
+            self.worker.complete_worker.connect(lambda: self.worker.terminate())
+            self.worker.complete_worker.connect(lambda: self.worker.deleteLater())
+            self.worker.complete_worker.connect(lambda: self.finish_worker())        
+            
+            self.button_stop.clicked.connect(lambda: self.stop_execution())
+            #self.button_stop.clicked.connect(lambda: self.button_run.setEnabled(True))
+            #self.button_stop.clicked.connect(lambda: self.button_stop.setEnabled(False))
           
-            print('passou um aviao')
 
-    def test(self):
-        self.stop_thread=True
+    def message(self, s):
+        self.text.setPlainText(s)
+
+    # def handle_stderr(self):
+    #     data = self.process_save.readAllStandardError()
+    #     stderr = bytes(data).decode("utf8")
+    #     # Extract progress if it is in the data.
+    #     self.message(stderr)
+
+    # def handle_stdout(self):
+    #     data = self.process_save.readAllStandardOutput()
+    #     stdout = bytes(data).decode("utf8")
+    #     self.message(stdout)
+
+    # def handle_state(self, state):
+    #     states = {
+    #         QtCore.QProcess.NotRunning: 'Not running',
+    #         QtCore.QProcess.Starting: 'Starting',
+    #         QtCore.QProcess.Running: 'Running',
+    #     }
+    #     state_name = states[state]
+    #     print(state_name)
+
+    def stop_execution(self):
+        self.message("Stopping")
+        if self.worker is not None:
+            self.stop_thread = True
+        
+        if self.process_save is not None:
+            self.process_save.kill()
+            self.del_process()
+
+        if (self.worker is None) and (self.process_save is None):
+            self.message("Finished")
+
+    def del_process(self):
+        self.process_save = None
+
+    def finish_worker(self):
+        self.worker = None
+        if self.process_save is None:
+            self.message("Finished")
+            self.button_stop.setEnabled(False)
+            self.button_run.setEnabled(True)
+        else:
+            self.message("Saving video")
+
+    def finish_process(self):
+        if self.worker is None:
+            self.message("Finished")
+            self.button_stop.setEnabled(False)
+            self.button_run.setEnabled(True)
+        self.del_process()
 
     def evt_update(self):
-        self.vp.interactor.Render()
-        if self.param.save:
-            self.video.addFrame()
-
-    def evt_update_progress(self, val):
-        self.pbar.setValue(val)
+        self.vp.interactor.Render()            
 
 class WorkerThread(QtCore.QThread):
     
     update_plot = QtCore.pyqtSignal(vd.plotter.Plotter)
-
-    update_progess = QtCore.pyqtSignal(int)
 
     complete_worker = QtCore.pyqtSignal(bool)
 
     def __init__(self, parent):    
         super().__init__()
         self.parent = parent
-
-    def map_value(self, x, out_min, out_max):
-        return (x - min(x)) * (out_max - out_min) / (max(x) - min(x)) + out_min
             
     @QtCore.pyqtSlot()
     def run(self):
@@ -591,8 +542,7 @@ class WorkerThread(QtCore.QThread):
         self.update_plot.emit(self.parent.vp)
 
         QtWidgets.QApplication.processEvents()
-        self.update_progess.emit(4)
-        pbar_vals = self.map_value(np.arange(0, len(self.sys1.yc)), 4, 100)
+
         for i, yc_i in enumerate(self.sys1.yc):
             self.parent.vp.actors[6].pos(self.sys1.pos_points[i]) #redpoint
             self.parent.vp.actors[2].pos([0, 0, yc_i + self.sys1.block_ratio])  #block
@@ -616,7 +566,6 @@ class WorkerThread(QtCore.QThread):
                 self.parent.vp.actors[16].pos(pos) #cylinder
             
             self.update_plot.emit(self.parent.vp)
-            self.update_progess.emit(pbar_vals[i])
             QtWidgets.QApplication.processEvents()
             if self.parent.stop_thread:
                 self.parent.stop_thread = False
@@ -631,27 +580,3 @@ if __name__ == "__main__":
     widget.addWidget(mainwindow)
     widget.showMaximized()
     sys.exit(app.exec_())
-
-    # Video
-    end_time   = 30                # Final time             [s]
-    fram_res   = 30                # Frame rate             [fps]
-
-    # System
-    mass = 1000                    # Mass                   [kg]
-    spring_cons = 48000            # Spring constant        [N/m]
-    damp_cons = 4000               # Damping constant  
-    
-    # Animation model
-    spring_leng  = 0.9             # Spring relaxed length  [m]
-    side_cube = 1                  # Size cube              [m]
-
-    # Base input
-    amp = 0.2                      # Amplitude              [m]
-    freq = 1.0                     # Frequency             [Hz]
-
-    # sys1 = MassSpringDamper(mass, damp_cons, spring_cons, spring_leng, side_cube, end_time, fram_res, amp, freq)
-
-    # sys2 = sys1.copy()
-
-    # plt = vd.Plotter(interactive=0, axes=4)
-

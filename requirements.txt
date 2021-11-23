@@ -4,3 +4,4 @@ vedo==2021.0.5
 vtk
 PyQt5==5.15.2
 pyopengl
+opencv-python

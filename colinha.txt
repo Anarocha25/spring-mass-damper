@@ -1,0 +1,28 @@
+0-[wall, 
+surface, 
+self.sys1.block, 
+self.sys1.spring, 
+self.sys1.tube, 
+self.sys1.cylinder, 
+self.sys1.redpt, 
+self.sys1.line_cos, 
+self.sys1.line_x, 
+self.sys1.line_y, 
+self.sys1.txt_U, 
+self.sys1.txt_time, 
+self.sys1.redpt_block]
+
+#####        
+      
+13 self.sys2.block, 
+14 self.sys2.spring, 
+15 self.sys2.tube, 
+16 self.sys2.cylinder, 
+17 self.sys2.redpt, 
+18 self.sys2.line_cos, 
+19 self.sys2.line_x, 
+20 self.sys2.line_y, 
+21 self.sys2.txt_U, 
+22 self.sys2.txt_time, 
+23 self.sys2.redpt_block]
+        

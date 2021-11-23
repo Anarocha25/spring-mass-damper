@@ -27,7 +27,6 @@ def tube(points, ratio, color):
     return vd.shapes.Tube(points=points, r=ratio, c=color)
 
 def pos_points(side_cube, x_vals, z):
-    
     points = np.empty((len(x_vals), 3))
     points[:, 0] = x_vals
     block_ratio = side_cube/2
