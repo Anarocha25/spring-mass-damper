@@ -5,6 +5,7 @@ import sys
 import os
 import ast
 import cv2
+import shutil
 from PyQt5 import Qt, QtWidgets, QtCore
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
@@ -143,7 +144,7 @@ class Parameters():
         layout.addWidget(self.spring_leng2)
 
         layout.addWidget(QtWidgets.QLabel('Side cube'))
-        layout.addWidget(self.side_cube)
+        layout.addWidget(self.side_cube2)
 
         layout.addWidget(QtWidgets.QLabel('Amplitude'))
         layout.addWidget(self.amp2)
@@ -175,7 +176,7 @@ class Parameters():
         self.damp_cons2.setText('4000')
 
         self.spring_leng2.setText('0.9')
-        self.side_cube.setText('1')
+        self.side_cube2.setText('1')
 
         self.amp2.setText('0.2')
         self.freq2.setText('1')
@@ -413,13 +414,9 @@ class MainWindow(QtWidgets.QDialog):
                 self.param.export_param() 
 
                 self.process_save = QtCore.QProcess()
-                #self.process_save.readyReadStandardOutput.connect(self.handle_stdout)
-                #self.process_save.readyReadStandardError.connect(self.handle_stderr)
-                #self.process_save.stateChanged.connect(self.handle_state)
                 self.process_save.start("python", ['z_process.py'])
                 self.process_save.finished.connect(lambda: self.finish_process())
                 
-
             self.worker = WorkerThread(parent=self)
             self.worker.start()
             self.worker.update_plot.connect(self.evt_update)
@@ -427,33 +424,11 @@ class MainWindow(QtWidgets.QDialog):
             self.worker.complete_worker.connect(lambda: self.worker.deleteLater())
             self.worker.complete_worker.connect(lambda: self.finish_worker())        
             
-            self.button_stop.clicked.connect(lambda: self.stop_execution())
-            #self.button_stop.clicked.connect(lambda: self.button_run.setEnabled(True))
-            #self.button_stop.clicked.connect(lambda: self.button_stop.setEnabled(False))
-          
+            #self.button_stop.clicked.connect(lambda: self.message("Stopping"))
+            self.button_stop.clicked.connect(lambda: self.stop_execution())         
 
     def message(self, s):
         self.text.setPlainText(s)
-
-    # def handle_stderr(self):
-    #     data = self.process_save.readAllStandardError()
-    #     stderr = bytes(data).decode("utf8")
-    #     # Extract progress if it is in the data.
-    #     self.message(stderr)
-
-    # def handle_stdout(self):
-    #     data = self.process_save.readAllStandardOutput()
-    #     stdout = bytes(data).decode("utf8")
-    #     self.message(stdout)
-
-    # def handle_state(self, state):
-    #     states = {
-    #         QtCore.QProcess.NotRunning: 'Not running',
-    #         QtCore.QProcess.Starting: 'Starting',
-    #         QtCore.QProcess.Running: 'Running',
-    #     }
-    #     state_name = states[state]
-    #     print(state_name)
 
     def stop_execution(self):
         self.message("Stopping")
@@ -462,10 +437,6 @@ class MainWindow(QtWidgets.QDialog):
         
         if self.process_save is not None:
             self.process_save.kill()
-            self.del_process()
-
-        if (self.worker is None) and (self.process_save is None):
-            self.message("Finished")
 
     def del_process(self):
         self.process_save = None
@@ -473,21 +444,27 @@ class MainWindow(QtWidgets.QDialog):
     def finish_worker(self):
         self.worker = None
         if self.process_save is None:
-            self.message("Finished")
             self.button_stop.setEnabled(False)
             self.button_run.setEnabled(True)
+            self.message("Finished")
         else:
             self.message("Saving video")
 
     def finish_process(self):
+        self.del_process()
+        self.delete_temp()
         if self.worker is None:
-            self.message("Finished")
             self.button_stop.setEnabled(False)
             self.button_run.setEnabled(True)
-        self.del_process()
+            self.message("Finished")
 
     def evt_update(self):
-        self.vp.interactor.Render()            
+        self.vp.interactor.Render()
+
+    def delete_temp(self):
+        directory = os.path.join(os.path.dirname(__file__), 'temp')
+        if os.path.exists(directory):
+            shutil.rmtree(directory)          
 
 class WorkerThread(QtCore.QThread):
     
@@ -571,12 +548,3 @@ class WorkerThread(QtCore.QThread):
                 self.parent.stop_thread = False
                 break
         self.complete_worker.emit(True)
-
-if __name__ == "__main__":
-
-    app = QtWidgets.QApplication(sys.argv)
-    widget = QtWidgets.QStackedWidget()
-    mainwindow = MainWindow()
-    widget.addWidget(mainwindow)
-    widget.showMaximized()
-    sys.exit(app.exec_())

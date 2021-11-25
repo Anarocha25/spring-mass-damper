@@ -1,1 +1,0 @@
-{'fram_res_par': 30, 'mass_par': 1000, 'damp_cons_par': 4000, 'spring_cons_par': 48000, 'spring_leng_par': 0.9, 'side_cube_par': 1, 'end_time_par': 30, 'amp_par': 0.2, 'freq_par': 1, 'two_sys': 0, 'name_save': 'system'}

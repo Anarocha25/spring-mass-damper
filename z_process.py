@@ -2,7 +2,6 @@ import vedo as vd
 import cv2  
 import os
 import ast
-import shutil
 import numpy as np 
 from z_system import MassSpringDamperSys1, MassSpringDamperSys2
 
@@ -36,8 +35,8 @@ side_cube_max = sys1.side_cube
 
 if param1["two_sys"]:
     sys2 = MassSpringDamperSys2(sys1.yc, param2["mass_par2"], param2["damp_cons_par2"], param2["spring_cons_par2"], \
-                            param2["spring_leng_par2"], param2["side_cube_par2"], param2["end_time_par"], \
-                            param2["fram_res_par"], param2["amp_par2"], param2["freq_par2"])
+                            param2["spring_leng_par2"], param2["side_cube_par2"], param1["end_time_par"], \
+                            param1["fram_res_par"], param2["amp_par2"], param2["freq_par2"])
     
     base_cyli2 = np.array([-sys1.side_cube/4, 0, sys2.init_point])
     top_cyli2 = np.array([-sys1.side_cube/4, 0, sys2.init_point + 0.6])
@@ -93,6 +92,3 @@ for i, yc_i in enumerate(sys1.yc):
     video.addFrame() 
  
 video.close()
-
-if os.path.exists(directory):
-    shutil.rmtree(directory)

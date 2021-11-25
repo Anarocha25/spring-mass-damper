@@ -14,7 +14,7 @@ Execute the code running the file:
 
     main.py
 
-![alt-text-1](https://github.com/Anarocha25/mass-spring-damper---1-DOF/blob/main/2block.gif) ![alt-text-2](https://github.com/Anarocha25/mass-spring-damper---1-DOF/blob/main/block.gif)
+![alt-text-1](https://github.com/Anarocha25/mass-spring-damper---1-DOF/blob/main/system1.gif) ![alt-text-2](https://github.com/Anarocha25/mass-spring-damper---1-DOF/blob/main/system2.gif)
 
 
 ## References
